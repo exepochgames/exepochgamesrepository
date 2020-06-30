@@ -7,14 +7,18 @@ namespace RPG.Combat {
     //Combat kabiliyeti olan actorler icin sınıf
     public class Fighter : MonoBehaviour, IAction
     {
-        [SerializeField] float weaponRange = 50f;  //Hedef ve aktor icin saldırı menzili durma limiti
-        [SerializeField] float timeBetweenAttacks = 2f;  //Silah cesidine gore saldırı hızı animasyon tekrarı süresi cooldown
-        float timeSinceLastAttack = 0;  //Son saldırı anim. sonrası gecen süre
-        [SerializeField] float weaponDamage=30f;  //Silah hasarı (Değişkenleştirilecek)
-        Health target;   //Mevcut aktroun etkileşime girdiği-gireceği actor (bullable)
-        
+        ///----------------------------------------------------------| EDITOR ONLY PUBLIC VARIABLES
+        [SerializeField] float weaponRange = 50f; 
+        [SerializeField] float timeBetweenAttacks = 2f;
+        [SerializeField] float weaponDamage=30f;
 
+        ///----------------------------------------------------------| PRIVATE VARIABLES
+        float timeSinceLastAttack = Mathf.Infinity;
 
+        ///----------------------------------------------------------| CLASS INSTANCES
+        Health target;
+
+        ///----------------------------------------------------------| UNITY METHODS
         private void Update()
         {
             timeSinceLastAttack += Time.deltaTime;  //Son saldırıdan sonra gecen süre hesaplaması
@@ -35,7 +39,36 @@ namespace RPG.Combat {
 
         }
 
-        private void Attackbehaviour() //++^ -- Hedefe saldırabilmek için yeterince yakın
+        ///----------------------------------------------------------| MAIN METODs
+        
+        public void Attack(GameObject combatTarget) 
+        {
+            GetComponent<ActionScheduler>().StartAction(this); // Action managing --< currentAction = Fighter.cs
+            target = combatTarget.GetComponent<Health>();  // Hedefin Healt componenti tutulur 
+        }
+
+        void Hit() 
+        {
+            if(target == null ) { return; }  //Hedef yoksa return dondur. (try catch için fazla basit ama kullanılabilir)
+            target.TakeDamage(weaponDamage);  // Hedefin Healt classının hasar alma fonksiyonuna mevcut aktorun saldırı gücü degiskeni instance'ı gönderilir ve hedefin canı azalır.
+        }
+        public void Cancel() 
+        {
+            StopAttack(); // Saldırı durdurma animasyon trigger Init()
+            target = null;  // Hedefe null atanır
+        }
+
+        ///----------------------------------------------------------| CONTROL STATEMENTs
+        public bool CanAttack(GameObject combatTarget) 
+        {   
+            if(combatTarget == null ) { return false; }  // Hedef yoksa FALSE dondur (Yani bu bir saldırı islemi degil)
+
+            Health targetToTest = combatTarget.GetComponent<Health>();   //Gelen nesnenin healt componenti tutulur
+            return targetToTest !=null && !targetToTest.IsDead();  //Sartlar saglanmıyorsa False doner ve hedefin healthı yok ve combat yapılamaz
+        }
+
+        ///----------------------------------------------------------| ANIMATION EVENTS
+        private void Attackbehaviour() 
         {
             transform.LookAt(target.transform.position);  // Saldırı animasyonu oncesi aktorun yönünü hedefe doğru çevir
             if(timeSinceLastAttack > timeBetweenAttacks)  // Onceki saldırıdan sonra yeterli zaman gecmisse sıradaki saldırı veya ilk saldırıyı gerçekleştir
@@ -45,43 +78,16 @@ namespace RPG.Combat {
             timeSinceLastAttack = 0;  // Gerçeklesen saldırı sonrası, son saldırıdan sonra gecen sure sayacını sıfırlama
             }
         }
-
-        //Animasyon eventi
-        void Hit()  // Middle animasyon anı gerçeklemesi
-        {
-            if(target == null ) { return; }  //Hedef yoksa return dondur. (try catch için fazla basit ama kullanılabilir)
-            target.TakeDamage(weaponDamage);  // Hedefin Healt clasının hasar alma fonksiyonuna mevcut aktorun saldırı gücü degiskeni instance'ı gönderilir ve hedefin canı azalır.
-        }
-
-        private bool GetIsInRange() //Aktor ve hedef arası saldırı menzili hesabı
-        {
-            return Vector3.Distance(transform.position, target.transform.position) < weaponRange;  // Hedef aktor arası mesafe saldırı menzilinden kısaysa TRUE döndür
-        }
-
-
-        // Mouseun üzerinde durdugu nesne saldırılabilir mi kontrolü
-        public bool CanAttack(CombatTarget combatTarget)  //Gelen parametredeki nesne bir combatTarget nesnesi değilse saldırılabilir degildir(combatTarget scriptine sahip degil demek)
-        {   if(combatTarget == null ) { return false; }  // Hedef yoksa FALSE dondur (Yani bu bir saldırı islemi degil)
-            Health targetToTest = combatTarget.GetComponent<Health>();   //Gelen nesnenin healt componenti tutulur
-            return targetToTest !=null && !targetToTest.IsDead();  //Sartlar saglanmıyorsa False doner ve hedefin healthı yok ve combat yapılamaz
-        }
-
-        public void Attack(CombatTarget combatTarget)  // Saldırı fonksiyonu backend
-        {
-            GetComponent<ActionScheduler>().StartAction(this); // Action managing --< currentAction = Fighter.cs
-            target = combatTarget.GetComponent<Health>();  // Hedefin Healt componenti tutulur 
-        }
-
-        public void Cancel()  //Saldırı durdurulur // Animason + backend
-        {
-            StopAttack(); // Saldırı durdurma animasyon trigger Init()
-            target = null;  // Hedefe null atanır
-        }
-
-        private void StopAttack()  //Animasyon eventi
+        private void StopAttack() 
         {
             GetComponent<Animator>().ResetTrigger("attack"); // Saldırma animasyonu deaktif edilir
             GetComponent<Animator>().SetTrigger("stopAttack");  // Saldırı durdurma animasyonu aktif edilir
+        }
+
+        ///----------------------------------------------------------| CALCULATORs
+        private bool GetIsInRange() 
+        {
+            return Vector3.Distance(transform.position, target.transform.position) < weaponRange;  // Hedef aktor arası mesafe saldırı menzilinden kısaysa TRUE döndür
         }
     }
 }

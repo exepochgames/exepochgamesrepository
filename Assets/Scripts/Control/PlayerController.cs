@@ -1,19 +1,32 @@
 using UnityEngine;
 using RPG.Movement;
 using RPG.Combat;
+using RPG.Core;
 
 namespace RPG.Control {
 
 // Aktorlerin ana kontrolünün saglandıgı sınıf
 public class PlayerController : MonoBehaviour
 {
-    private void Update()
+        ///----------------------------------------------------------| PRIVATE VARIABLES
+        Health health;
+
+        ///----------------------------------------------------------| UNITY METHODS
+        private void Start() 
         {
+            health = GetComponent<Health>();
+        }
+
+        private void Update() 
+        {
+            if (health.IsDead()) return;
+
             if(InteractWithCombat()) return;  // Dovüs durumu icin ana fonksiyon
             if(IntercatWithMovement()) return; // Hareket durumu icin ana fonksiyon
         }
 
-        private bool InteractWithCombat() // Dovüs mekanizması calısma prensibi
+        ///----------------------------------------------------------| MAIN METHODS
+        private bool InteractWithCombat() 
 
         {
             RaycastHit[] hits = Physics.RaycastAll(GetMouseRay()); // Mouse imlecinin üzerinde durdugu tum nesnelere raycast cizimi, bu raycastlerin bir dizide tutulması
@@ -22,22 +35,23 @@ public class PlayerController : MonoBehaviour
             {
                 CombatTarget target = hit.transform.GetComponent<CombatTarget>(); // raycastın carptıgı nesnenin "CombatTarget" componentinin instanceı alınır
 
-                if(!GetComponent<Fighter>().CanAttack(target)) // "CanAttack" FALSE ise can yok vey saldırılabilir nesne degil demektir
+                if (target == null) continue;
+
+                if(!GetComponent<Fighter>().CanAttack(target.gameObject)) // "CanAttack" FALSE ise can yok vey saldırılabilir nesne degil demektir
                 {
                     continue;             // Saglanan sart icin raycastın carptıgı bu cisme saldırı uygulanamaz, sıradaki nesneye gecmek icin
                 }
 
                 if(Input.GetMouseButton(1))    // Yukarıdaki sartlar saglanmıs ve nesne saldırılabilirse buraya gelinmistir. Mouse1 tıklanırsa eger <
                 {
-                    GetComponent<Fighter>().Attack(target);   // Mouseun üzerinde durdugu nesne hedef olarak belirlenir
+                    GetComponent<Fighter>().Attack(target.gameObject);   // Mouseun üzerinde durdugu nesne hedef olarak belirlenir
                 }
                 return true; // Saldırma islemi biter ve InteractWithCombat fonksiyonu TRUE return eder
             }
             return false; //InteractWithCombat fonksiyonu FALSE dondurerek dovus durumu olmadıgı anlasılır ve sıradaki kontrol(hareket) yapılır(Update icerisinde)
         }
 
-
-        private bool IntercatWithMovement() // Hareket kabiliyeti ana prensibi
+        private bool IntercatWithMovement() 
         {
             Ray ray = GetMouseRay(); // Mouse ray cizilir haritada hangi koordinata denk geldigi ölcülür
 
@@ -54,7 +68,9 @@ public class PlayerController : MonoBehaviour
             }
             return false; // IntercatWithMovement FALSE hareket islemi olmadıgı anlasılır
         }
-        private static Ray GetMouseRay() // Mouse icin raycast cizimi
+
+        ///----------------------------------------------------------| CALCULATORs
+        private static Ray GetMouseRay() 
         {
             return Camera.main.ScreenPointToRay(Input.mousePosition); //cameradan mouseun oldugu yone dogru raycast cizilir
         }
