@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace RPG.Core{
 
@@ -16,7 +14,7 @@ namespace RPG.Core{
 
         private void Update()
         {
-            this.transform.position = playertransform.position; // Bu scriptin bulunduğu nesnenin positionu "Player" taglı nesne ile aynı olur
+            transform.position = playertransform.position; // Bu scriptin bulunduğu nesnenin positionu "Player" taglı nesne ile aynı olur
         }
     }
 }

@@ -1,58 +1,69 @@
-﻿using UnityEngine;
-using UnityEngine.AI;
+﻿using System.Collections;
+using System.Collections.Generic;
 using RPG.Core;
-using RPG.Combat;
+using RPG.Saving;
+using UnityEngine;
+using UnityEngine.AI;
 
-namespace RPG.Movement{
-
-
-    public class Mover : MonoBehaviour, IAction
+namespace RPG.Movement
+{
+    public class Mover : MonoBehaviour, IAction, ISaveable
     {
-        ///----------------------------------------------------------| CLASS INSTANCEs
-        NavMeshAgent navMeshAgent; // Nav mesh componenti icin referans
-        Animator animator; // Animantor componenti icin ref
+        [SerializeField] float maxSpeed = 6f;
+
+        NavMeshAgent navMeshAgent;
         Health health;
 
-        ///----------------------------------------------------------| UNITY METHODs
         private void Start() {
-            navMeshAgent=GetComponent<NavMeshAgent>(); // NavMesh Initializer
-            animator=GetComponent<Animator>();  // Animator Init
+            navMeshAgent = GetComponent<NavMeshAgent>();
             health = GetComponent<Health>();
         }
 
-        private void Update()
+        void Update()
         {
             navMeshAgent.enabled = !health.IsDead();
-            UpdateAnimator(); 
+
+            UpdateAnimator();
         }
 
-        ///----------------------------------------------------------| MAIN METHODs
-        public void StartMoveAction(Vector3 destination) 
+        public void StartMoveAction(Vector3 destination, float speedFraction)
         {
-           GetComponent<ActionScheduler>().StartAction(this); // Aktif islem kontrolcüsüne yeni islem talebi
-           GetComponent<Fighter>().Cancel();  // Saldırı islemi iptal edilir
-           MoveTo(destination); // Parametre olarak, PlayerContollerda alınan mouse raycastın carptıgı noktanın positionu gönderilir
+            GetComponent<ActionScheduler>().StartAction(this);
+            MoveTo(destination, speedFraction);
         }
 
-        public void MoveTo(Vector3 destination) 
+        public void MoveTo(Vector3 destination, float speedFraction)
         {
-            navMeshAgent.destination = destination; // Navmesh sistemi icin hedef pozisyonu olarak gelen parametre gonderimi
-            navMeshAgent.isStopped = false;  // Durma eyleminden hareket eylemine geçmenin kesinlestirilmesi (Bug fixlemek için)
+            navMeshAgent.destination = destination;
+            navMeshAgent.speed = maxSpeed * Mathf.Clamp01(speedFraction);
+            navMeshAgent.isStopped = false;
         }
 
-        public void Cancel() 
+        public void Cancel()
         {
-            navMeshAgent.isStopped = true; // isStopped fonksiyonuyla navMesh üzerinden hareket durdurulur.
+            navMeshAgent.isStopped = true;
         }
 
-
-        ///----------------------------------------------------------| ANIMATOR EVENTs
-        private void UpdateAnimator() 
+        private void UpdateAnimator()
         {
-            Vector3 velocity = navMeshAgent.velocity;  // Hareketin ivmesinin navMesh sisteminden çekilmesi (World eksenine göre)
-            Vector3 localVelocity = transform.InverseTransformDirection(velocity); // Local ivmenin çekilmesi (Karakterin Transform degerlerine gore (Animasyon hız/ivme orantısı bug fix))
-            float speed = localVelocity.z; // Aktorün hızı kendi Transformu üzerinden hesaplanan ivmenin z eksenindeki degeri kadardır(z yönünde 5f ise hızı 5f per second)
-            animator.SetFloat("forwardSpeed", speed); // Hız değeri animatorde 0 iken sabit durma animasyonunu oynatır ,bu deger arttıkca kosma animasyonuna gecis saglanır
+            Vector3 velocity = navMeshAgent.velocity;
+            Vector3 localVelocity = transform.InverseTransformDirection(velocity);
+            float speed = localVelocity.z;
+            GetComponent<Animator>().SetFloat("forwardSpeed", speed);
+        }
+
+        public object CaptureState()
+        {
+            return new SerializableVector3(transform.position);
+        }
+
+        public void RestoreState(object state)
+        {
+            SerializableVector3 position = (SerializableVector3)state;
+            GetComponent<NavMeshAgent>().enabled = false;
+            transform.position = position.ToVector();
+            GetComponent<NavMeshAgent>().enabled = true;
+            GetComponent<ActionScheduler>().CancelCurrentAction();
         }
     }
 }

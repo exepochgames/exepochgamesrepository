@@ -1,39 +1,50 @@
+using RPG.Saving;
 using UnityEngine;
 
 namespace RPG.Core
 {
-    public class Health : MonoBehaviour
+    public class Health : MonoBehaviour, ISaveable
     {
-        ///----------------------------------------------------------| EDITOR ONLY PUBLIC VARIABLEs
-        [SerializeField] float health = 100f;
+        [SerializeField] float healthPoints = 100f;
 
-        ///----------------------------------------------------------| PRIVATE VARIABLEs
-        bool isDead =false;
+        bool isDead = false;
 
-        ///----------------------------------------------------------| MAIN METHODs
-        public void TakeDamage(float damage) 
-        {
-            health = Mathf.Max(health - damage, 0); // kalan can miktarını tut ya da healt<=0 durumunu da kontrol et
-
-            if(health==0) // Can sıfırlandıgında
-            {
-                Die(); //Öldürme işlemi
-            }
-        }
-
-        private void Die() 
-        {
-            if(isDead) { return; } // TRUE ise geri kalan ayarlamalar zaten aynı demektir(ölü adamın tekrar ölme animasyonu calısmaması icin)
-
-            isDead=true;  // Karakter öldü ataması
-            GetComponent<Animator>().SetTrigger("die"); // Ölüm animasyonu triggerı aktif etme
-            GetComponent<ActionScheduler>().CancelCurrentAction();
-        }
-
-        ///----------------------------------------------------------| CONTROL STATEMENTs
         public bool IsDead()
         {
             return isDead;
         }
-    }   
+
+        public void TakeDamage(float damage)
+        {
+            healthPoints = Mathf.Max(healthPoints - damage, 0);
+            if(healthPoints == 0)
+            {
+                Die();
+            }
+        }
+
+        private void Die()
+        {
+            if (isDead) return;
+
+            isDead = true;
+            GetComponent<Animator>().SetTrigger("die");
+            GetComponent<ActionScheduler>().CancelCurrentAction();
+        }
+
+        public object CaptureState()
+        {
+            return healthPoints;
+        }
+
+        public void RestoreState(object state)
+        {
+            healthPoints = (float) state;
+            
+            if (healthPoints <= 0)
+            {
+                Die();
+            }
+        }
+    }
 }

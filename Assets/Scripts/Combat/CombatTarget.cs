@@ -1,11 +1,12 @@
 using UnityEngine;
+using RPG.Core;
 
-namespace RPG.Combat{
+namespace RPG.Combat
+{
+    [RequireComponent(typeof(Health))]
 
-    //Enemy actorler icin hedef sınıfı
     public class CombatTarget : MonoBehaviour
     {
-        
+
     }
-    
 }

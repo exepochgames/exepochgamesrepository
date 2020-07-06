@@ -1,42 +1,40 @@
-﻿using UnityEngine;
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using RPG.Combat;
 using RPG.Core;
 using RPG.Movement;
-using UnityEngine.AI;
+using UnityEngine;
 
 namespace RPG.Control
 {
     public class AIController : MonoBehaviour
     {
-        ///----------------------------------------------------------| ONLY EDITOR PUBLIC VARIABLES
-        [SerializeField] float chaseDistance = 20f;
-        [SerializeField] float suspicionTime = 5f;
-        [SerializeField] float wayPointTolerance = 1f;
-        [SerializeField] float waypointDwellTime = 2f;
-        [SerializeField] PatrolPath patrolPath;
+        [SerializeField] float chaseDistance = 5f;
+        [SerializeField] float suspicionTime = 3f;
+        [SerializeField] PatrolPath patrolPath = null;
+        [SerializeField] float waypointTolerance = 1f;
+        [SerializeField] float waypointDwellTime = 3f;
+        [Range(0,1)]
+        [SerializeField] float patrolSpeedFraction = 0.2f;
 
-        ///----------------------------------------------------------| PRIVATE VARIABLES
-        float timeLastSawPlayer = Mathf.Infinity;
-        float timeSinceArrivedAtWaypoint = Mathf.Infinity;
-        Vector3 guardPosition;
-        int currentWaypointIndex = 0;
-
-        ///----------------------------------------------------------| CLASS INSTANCES
         Fighter fighter;
-        GameObject player;
         Health health;
         Mover mover;
-        NavMeshAgent agent;
+        GameObject player;
 
-        ///----------------------------------------------------------| UNITY METHODS
-        private void Start()
-        {
+        Vector3 guardPosition;
+        float timeSinceLastSawPlayer = Mathf.Infinity;
+        float timeSinceArrivedAtWaypoint = Mathf.Infinity;
+        int currentWaypointIndex = 0;
+
+        private void Start() {
             fighter = GetComponent<Fighter>();
-            player = GameObject.FindGameObjectWithTag("Player");
             health = GetComponent<Health>();
-            guardPosition = transform.position;
             mover = GetComponent<Mover>();
-            agent = GetComponent<NavMeshAgent>();
+            player = GameObject.FindWithTag("Player");
+
+            guardPosition = transform.position;
         }
 
         private void Update()
@@ -47,7 +45,7 @@ namespace RPG.Control
             {
                 AttackBehaviour();
             }
-            else if (timeLastSawPlayer < suspicionTime)
+            else if (timeSinceLastSawPlayer < suspicionTime)
             {
                 SuspicionBehaviour();
             }
@@ -55,18 +53,19 @@ namespace RPG.Control
             {
                 PatrolBehaviour();
             }
+
             UpdateTimers();
         }
 
-        ///----------------------------------------------------------| BEHAVIOURS
-        private void SuspicionBehaviour()
+        private void UpdateTimers()
         {
-            GetComponent<ActionScheduler>().CancelCurrentAction();
+            timeSinceLastSawPlayer += Time.deltaTime;
+            timeSinceArrivedAtWaypoint += Time.deltaTime;
         }
+
         private void PatrolBehaviour()
         {
             Vector3 nextPosition = guardPosition;
-            agent.speed = 2f;
 
             if (patrolPath != null)
             {
@@ -80,22 +79,14 @@ namespace RPG.Control
 
             if (timeSinceArrivedAtWaypoint > waypointDwellTime)
             {
-                mover.StartMoveAction(nextPosition);
+                mover.StartMoveAction(nextPosition, patrolSpeedFraction);
             }
         }
 
-        private void AttackBehaviour()
+        private bool AtWaypoint()
         {
-            agent.speed = 4f;
-            timeLastSawPlayer = 0;
-            fighter.Attack(player);
-        }
-
-
-        ///----------------------------------------------------------| PATROL ROUTES
-        private Vector3 GetCurrentWaypoint()
-        {
-            return patrolPath.GetWaypoint(currentWaypointIndex);
+            float distanceToWaypoint = Vector3.Distance(transform.position, GetCurrentWaypoint());
+            return distanceToWaypoint < waypointTolerance;
         }
 
         private void CycleWaypoint()
@@ -103,33 +94,32 @@ namespace RPG.Control
             currentWaypointIndex = patrolPath.GetNextIndex(currentWaypointIndex);
         }
 
-        private bool AtWaypoint()
+        private Vector3 GetCurrentWaypoint()
         {
-            float distanceToWaypoint = Vector3.Distance(transform.position, GetCurrentWaypoint());
-            return distanceToWaypoint < wayPointTolerance;
+            return patrolPath.GetWaypoint(currentWaypointIndex);
         }
 
+        private void SuspicionBehaviour()
+        {
+            GetComponent<ActionScheduler>().CancelCurrentAction();
+        }
 
+        private void AttackBehaviour()
+        {
+            timeSinceLastSawPlayer = 0;
+            fighter.Attack(player);
+        }
 
-
-
-        ///----------------------------------------------------------| CALCULATORs
         private bool InAttackRangeOfPlayer()
         {
             float distanceToPlayer = Vector3.Distance(player.transform.position, transform.position);
             return distanceToPlayer < chaseDistance;
         }
 
-        private void OnDrawGizmosSelected()
-        {
+        // Called by Unity
+        private void OnDrawGizmosSelected() {
             Gizmos.color = Color.blue;
             Gizmos.DrawWireSphere(transform.position, chaseDistance);
-            
-        }
-        private void UpdateTimers()
-        {
-            timeLastSawPlayer += Time.deltaTime;
-            timeSinceArrivedAtWaypoint += Time.deltaTime;
         }
     }
 }

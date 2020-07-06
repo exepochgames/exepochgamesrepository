@@ -1,78 +1,67 @@
-using UnityEngine;
-using RPG.Movement;
+using System;
 using RPG.Combat;
 using RPG.Core;
+using RPG.Movement;
+using UnityEngine;
 
-namespace RPG.Control {
-
-// Aktorlerin ana kontrolünün saglandıgı sınıf
-public class PlayerController : MonoBehaviour
+namespace RPG.Control
 {
-        ///----------------------------------------------------------| PRIVATE VARIABLES
+    public class PlayerController : MonoBehaviour
+    {
         Health health;
 
-        ///----------------------------------------------------------| UNITY METHODS
-        private void Start() 
-        {
+        private void Start() {
             health = GetComponent<Health>();
         }
 
-        private void Update() 
+        private void Update()
         {
             if (health.IsDead()) return;
 
-            if(InteractWithCombat()) return;  // Dovüs durumu icin ana fonksiyon
-            if(IntercatWithMovement()) return; // Hareket durumu icin ana fonksiyon
+            if (InteractWithCombat()) return;
+            if (InteractWithMovement()) return;
         }
 
-        ///----------------------------------------------------------| MAIN METHODS
-        private bool InteractWithCombat() 
-
+        private bool InteractWithCombat()
         {
-            RaycastHit[] hits = Physics.RaycastAll(GetMouseRay()); // Mouse imlecinin üzerinde durdugu tum nesnelere raycast cizimi, bu raycastlerin bir dizide tutulması
-
-            foreach (RaycastHit hit in hits) // Raycastın degdıgı tum nesnelerin ne oldugunun kontrolü (Hedef ise saldırılması / haritada bir nokta ise o noktaya gidilebilmesi icin)
+            RaycastHit[] hits = Physics.RaycastAll(GetMouseRay());
+            foreach (RaycastHit hit in hits)
             {
-                CombatTarget target = hit.transform.GetComponent<CombatTarget>(); // raycastın carptıgı nesnenin "CombatTarget" componentinin instanceı alınır
-
+                CombatTarget target = hit.transform.GetComponent<CombatTarget>();
                 if (target == null) continue;
 
-                if(!GetComponent<Fighter>().CanAttack(target.gameObject)) // "CanAttack" FALSE ise can yok vey saldırılabilir nesne degil demektir
+                if (!GetComponent<Fighter>().CanAttack(target.gameObject))
                 {
-                    continue;             // Saglanan sart icin raycastın carptıgı bu cisme saldırı uygulanamaz, sıradaki nesneye gecmek icin
+                    continue;
                 }
 
-                if(Input.GetMouseButton(1))    // Yukarıdaki sartlar saglanmıs ve nesne saldırılabilirse buraya gelinmistir. Mouse1 tıklanırsa eger <
+                if (Input.GetMouseButton(1))
                 {
-                    GetComponent<Fighter>().Attack(target.gameObject);   // Mouseun üzerinde durdugu nesne hedef olarak belirlenir
+                    GetComponent<Fighter>().Attack(target.gameObject);
                 }
-                return true; // Saldırma islemi biter ve InteractWithCombat fonksiyonu TRUE return eder
+                return true;
             }
-            return false; //InteractWithCombat fonksiyonu FALSE dondurerek dovus durumu olmadıgı anlasılır ve sıradaki kontrol(hareket) yapılır(Update icerisinde)
+            return false;
         }
 
-        private bool IntercatWithMovement() 
+        private bool InteractWithMovement()
         {
-            Ray ray = GetMouseRay(); // Mouse ray cizilir haritada hangi koordinata denk geldigi ölcülür
-
-            RaycastHit hit; // Raycastın carptıgı nokta icin tutucu referans deger
-            bool hasHit = Physics.Raycast(GetMouseRay(), out hit); // raycast cizilir,haritada(terrain) bir yere carpmıssa true atanır
-
-            if (hasHit) // RayCast bir yere carpıyorsa
+            RaycastHit hit;
+            bool hasHit = Physics.Raycast(GetMouseRay(), out hit);
+            if (hasHit)
             {
-                if(Input.GetMouseButton(1)) //Mouse1 basıldı
+                if (Input.GetMouseButton(1))
                 {
-                GetComponent<Mover>().StartMoveAction(hit.point); // Hareket islemi icin Mover fonksiyonuna gidilecek yerin kordınatı gonderilir
+                    GetComponent<Mover>().StartMoveAction(hit.point, 1f);
                 }
-                return true; // Hareket islemi biter IntercatWithMovement islemi TRUE dondürür
+                return true;
             }
-            return false; // IntercatWithMovement FALSE hareket islemi olmadıgı anlasılır
+            return false;
         }
 
-        ///----------------------------------------------------------| CALCULATORs
-        private static Ray GetMouseRay() 
+        private static Ray GetMouseRay()
         {
-            return Camera.main.ScreenPointToRay(Input.mousePosition); //cameradan mouseun oldugu yone dogru raycast cizilir
+            return Camera.main.ScreenPointToRay(Input.mousePosition);
         }
     }
-} 
+}
